@@ -1,0 +1,13 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<testsuite name="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" tests="7" failures="0" errors="0" timestamp="2014-03-28T14:55:43" hostname="ubuntu" time="0.005">
+  <properties/>
+  <testcase name="variable" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.0"/>
+  <testcase name="notAPrimaryExpression" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.0"/>
+  <testcase name="bracketted" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.0"/>
+  <testcase name="boolLiteralF" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.001"/>
+  <testcase name="boolLiteralT" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.0"/>
+  <testcase name="intLiteral" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.0"/>
+  <testcase name="floatLiteral" classname="com.sun.scenario.effect.compiler.parser.PrimaryExprTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

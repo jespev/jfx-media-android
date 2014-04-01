@@ -1,0 +1,13 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<testsuite name="com.sun.scenario.effect.compiler.parser.IterationStatementTest" tests="7" failures="0" errors="0" timestamp="2014-03-28T14:55:43" hostname="ubuntu" time="0.074">
+  <properties/>
+  <testcase name="forStmtNoConditionOrIncrement" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.003"/>
+  <testcase name="whileStmt" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.001"/>
+  <testcase name="forStmtNoIncrement" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.014"/>
+  <testcase name="forStmtNoCondition" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.001"/>
+  <testcase name="forStmt" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.014"/>
+  <testcase name="doWhileStmt" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.024"/>
+  <testcase name="notAnIterationStmt" classname="com.sun.scenario.effect.compiler.parser.IterationStatementTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

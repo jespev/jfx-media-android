@@ -1,0 +1,263 @@
+/*
+ * Creates Android project for deploying JavaFX application.
+ * Requires: Android sdk installed, JavaFX sdk for Android, VM image for Android
+ * 
+ * Parameters: 
+ *      ANDROID_SDK - path to Android sdk
+ *      TARGET      - android platform (optional).
+ *      NAME        - name of the Android application.
+ *      PACKAGE     - package of the Android application.
+ *      DIR         - path where to a project wll be created.
+ *      DEBUG       - generate vm with debug and profiling support
+ *      JFX_SDK     - path to Android JavaFX sdk.
+ *      JFX_APP     - path to JavaFX application dist folder containg all jars.
+ *      JFX_MAIN    - a main class which to start.
+ *    
+ * Usage: gradle createProject
+ *          -PANDROID_SDK=<path to Android sdk>
+ *          -PTARGET=<android platform> /optional/
+ *          -PNAME=<project name>
+ *          -PPACKAGE=<application package>
+ *          -PDIR=<where to create a project>
+ *          -PDEBUG <generate vm with debug and profiling support>
+ *          -PJFX_MAIN=<fully qualified main class to start>
+ *          -PJFX_SDK=<path to Android sdk>
+ *          -PJFX_APP=<path to javafx application dist dir>
+ */
+
+def manifest = 
+"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+"<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n" +
+"\tpackage=\"%s\"\n" +
+"\tandroid:versionCode=\"1\"\n" +
+"\tandroid:versionName=\"1.0\">\n" +
+"\t<supports-screens android:xlargeScreens=\"true\" />\n" +
+"\t<application android:label=\"@string/app_name\" android:debuggable=\"true\">\n" +
+"\t\t<activity android:name=\"javafxports.android.FXActivity\" android:label=\"@string/app_name\"\n" +
+"\t\t\tandroid:configChanges=\"orientation\">\n" +
+"\t\t\t<meta-data android:name=\"launcher.class\" android:value=\"%s\" />\n" +
+"\t\t\t<!-- Full name of the application class to run -->\n" +
+"\t\t\t<meta-data android:name=\"main.class\"\n"  +
+"\t\t\t\tandroid:value=\"%s\" />\n"  +
+"\t\t\t<!-- Jvm arguments (delimiter |) -->\n"  +
+"\t\t\t<meta-data android:name=\"jvm.args\"\n"  +
+"\t\t\t\tandroid:value=\"-Djavafx.verbose=true|-Djavafx.name=value\" />\n"  +
+"\t\t\t<!-- Application arguments (delimiter |) -->\n"  +
+"\t\t\t<meta-data android:name=\"app.args\" android:value=\"arg1|arg2\" />\n"  +
+"\t\t\t<!-- Jdwp debugging port. Don't forget to forward port (adb forward tcp:port1 tcp:port2) -->\n"  +
+"\t\t\t<meta-data android:name=\"debug.port\" android:value=\"0\" />\n"  +
+"\t\t\t<intent-filter>\n"  +
+"\t\t\t\t<action android:name=\"android.intent.action.MAIN\" />\n"  +
+"\t\t\t\t<category android:name=\"android.intent.category.LAUNCHER\" />\n"  +
+"\t\t\t</intent-filter>\n"  +
+"\t\t</activity>\n"  +
+"\t</application>\n"  +
+"\t<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"></uses-permission>\n"  +
+"\t<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"></uses-permission>\n"  +
+"\t<uses-permission android:name=\"android.permission.INTERNET\"></uses-permission>\n"  +
+"</manifest>"
+
+def stringsXml = 
+"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+"<resources>\n" +
+"\t<string name=\"app_name\">%s</string>\n" +
+"</resources>"
+
+def usageMessage = 
+    "\nUsage: gradle createProject\n" +
+    "\t-PANDROID_SDK=<path to Android sdk>\n" +
+    "\t-PTARGET=<android platform> /optional/\n" +
+    "\t-PNAME=<project name>\n" +
+    "\t-PPACKAGE=<application package>\n" +
+    "\t-PDIR=<where to create a project>\n" +
+    "\t-DEBUG <generate vm with debug and profiling support>\n" + 
+    "\t-PJFX_MAIN=<fully qualified main class to start>\n" +
+    "\t-PJFX_SDK=<path to Android sdk>\n" +
+    "\t-PJFX_APP=<path to javafx application dist dir>\n"
+
+String getLatestPlatform(String path) {
+    def max = 0
+    file("$path/platforms").eachDir() {file->
+        def pname = file.getName() - "android-"
+        def ptf = pname?.isInteger() ? pname.toInteger() : 0
+        if (max < ptf) {
+            max = ptf
+        }
+    }
+    if (max == 0) {
+        return null;
+    }
+    return "android-" + max
+}
+
+boolean assertDir(File dir) {
+    return dir != null && dir.exists() && dir.isDirectory() && dir.canRead();
+}
+
+boolean assertDir(String dir) {
+    return dir != null && assertDir(file(dir))
+}
+
+boolean assertDir(String dir, Closure c) {
+    return assertDir(dir) ? c(dir) : false
+}
+
+defaultTasks 'usage'
+                    
+task conf {
+    ext.sdk = project.hasProperty("ANDROID_SDK") ? "${ANDROID_SDK}" : null;
+    if (ext.sdk == null) {
+        ant.fail("Error: Can't build Android. Path to Android SDK was not set or is invalid!\n" +
+                 usageMessage)
+    }
+
+    if (!assertDir(ext.sdk)) {
+        if (!assertDir(ext.sdk)) {
+            ant.fail("Error: Path to Android SDK is invalid! [$ext.sdk]\n" + 
+                     usageMessage)
+        }
+    }
+
+    ext.sdk_target = project.hasProperty("TARGET") ?  "${TARGET}" : getLatestPlatform(sdk);
+    if (!assertDir(file("$sdk/platforms/$ext.sdk_target"))) {            
+        def new_sdk_target = getLatestPlatform(sdk); 
+        if (!new_sdk_target.equals(ext.sdk_target)) {
+            logger.warn("Warning: Redefining Android target to: [$ext.sdk_target]")
+            ext.sdk_target = new_sdk_target;
+        } else {
+            ant.fail("Error: Failed to resolve Android target!\n" +
+                     usageMessage)
+        }
+    }
+
+    ext.isDalvik = true
+    ext.launcher = isDalvik ? "javafxports.android.DalvikLauncher" :  "com.oracle.dalvik.JavaSELauncher"
+
+    ext.project_name = project.hasProperty("NAME") ? "${NAME}"  : null
+    if (ext.project_name == null) {
+        ant.fail("Error: Project name must be specfied!\n" + 
+                 usageMessage)
+    }
+
+    ext.project_package = project.hasProperty("PACKAGE") ? "${PACKAGE}" : null
+    if (ext.project_package == null) {
+        ant.fail("Error: Project package must be specified!\n" +
+                 usageMessage)
+    }
+
+    ext.jfxapp = project.hasProperty("JFX_APP") ? "${JFX_APP}" : null
+    if (ext.jfxapp == null) {
+        logger.warn("Warning: JavaFX application dist forlder must be specified!")
+    }
+
+    ext.jfxsdk = project.hasProperty("JFX_SDK") ? "${JFX_SDK}" : null
+    if (ext.jfxsdk == null) {
+        logger.warn("Warning: JavaFX SDK must be specified!")
+    }
+
+    ext.main_class = project.hasProperty("JFX_MAIN") ? "${JFX_MAIN}" : null
+    if (ext.main_class == null) {
+        logger.warn("Warning: Main class must be specified!")
+    }
+    
+    ext.workdir = project.hasProperty("DIR") ? "${DIR}" : '.'
+    if (new File("$ext.workdir/$ext.project_name").exists()) {
+        ant.fail("Error: Project file already exists!\n" + 
+                 usageMessage)
+    }
+    if (!new File("$ext.workdir").exists()) {
+        ant.mkdir(dir: "$ext.workdir")
+    }
+    ext.debug = project.hasProperty("DEBUG") ? true : false
+}
+
+conf << {
+    println "\n===================================================="
+    println "Android SDK:\t\t[$conf.ext.sdk]"
+    println "Target:\t\t\t[$conf.ext.sdk_target]"
+    println "Project name:\t\t[$conf.ext.project_name]"
+    println "Package:\t\t[$conf.ext.project_package]"
+    println "JavaFX application:\t[$conf.ext.jfxapp]"
+    println "JavaFX sdk:\t\t[$conf.ext.jfxsdk]"
+    println "JavaFX main.class:\t[$conf.ext.main_class]"   
+    println "Workdir:\t\t[$conf.ext.workdir]"
+    println "debug:\t\t\t[$conf.ext.debug]"
+    println "===================================================\n"
+}
+
+task usage << {
+    println usageMessage
+}
+  
+task androidCreateProject(type:Exec, dependsOn: conf) {
+    workingDir conf.ext.workdir
+    args ('create', 'project', '-n', conf.ext.project_name, '-p', conf.ext.project_name)
+    args ('-t', conf.ext.sdk_target, '-k', conf.ext.project_package, '-a', 'Activity')
+    def os = System.getProperty("os.name").toLowerCase() 
+    if (os.contains("windows")) {executable 'android.bat'  }
+    else if (os.contains("mac os")){ executable 'android'}  
+    else { executable 'android' } // assume Linux 
+}
+
+task deleteSrcAndLayout(dependsOn: androidCreateProject) << {
+    ant.delete (includeEmptyDirs: 'true') {
+      fileset(dir: file("$conf.ext.workdir/$conf.ext.project_name/src"), includes: '*/**')
+      fileset(dir: file("$conf.ext.workdir/$conf.ext.project_name/res/layout"), includes: '*/**')
+    } 
+}
+
+task writeAntProperties(dependsOn: deleteSrcAndLayout) << {
+        new File("$conf.ext.workdir/$conf.ext.project_name/ant.properties").withPrintWriter{ pw->
+        pw.println("jfx.sdk.absolute.dir=$conf.ext.jfxsdk")
+        pw.println("jfx.app.absolute.dist.dir=$conf.ext.jfxapp")
+        if (conf.ext.isDalvik) {
+            pw.println("isDalvik=true")
+        }
+    }
+}
+
+task updateManifest(dependsOn: writeAntProperties) << {
+    def mf = new File("$conf.ext.workdir/$conf.ext.project_name/AndroidManifest.xml")
+    if (mf.exists()) {
+        mf.delete()
+    }
+    mf.withPrintWriter{ pw ->
+        pw.printf(manifest, "${conf.ext.project_package}", "${conf.ext.launcher}", "${conf.ext.main_class}")
+    }
+}
+
+task updateStringsXml(dependsOn: updateManifest) << {
+    def f = new File("$conf.ext.workdir/$conf.ext.project_name/res/values/strings.xml")
+    if (f.exists()) {
+        f.delete()
+    }
+    f.withPrintWriter{ pw ->
+        pw.printf(stringsXml, conf.ext.project_name)
+    }
+}
+
+task updateBuildXml(dependsOn:updateStringsXml) << {
+    def build_xml = new File("$conf.ext.workdir/$conf.ext.project_name/build.xml")
+    def bfin = new FileReader(build_xml)
+    
+    boolean done = false
+    def data = []
+    bfin.eachLine {line ->
+        if (!done && line.contains("import file=\"custom_rules.xml\"")) {
+            data << "    <import file=\"\${jfx.sdk.absolute.dir}/android-tools/build-extras.xml\"/>"
+            done = true
+        }
+        data << line
+    }//eachLine
+    bfin.close()
+    build_xml.delete()
+    def bfout = new FileWriter("$conf.ext.workdir/$conf.ext.project_name/build.xml") 
+    data.each {line ->
+        bfout.println(line)
+    }
+    bfout.close()
+}
+          
+task createProject(dependsOn: updateBuildXml) << {
+    println 'Creates and set up android project for JavaFX.'
+}

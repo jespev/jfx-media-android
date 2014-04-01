@@ -1,0 +1,22 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<testsuite name="com.sun.scenario.effect.compiler.parser.FieldSelectTest" tests="16" failures="0" errors="0" timestamp="2014-03-28T14:55:43" hostname="ubuntu" time="0.063">
+  <properties/>
+  <testcase name="tooManyVals" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.007"/>
+  <testcase name="r" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.002"/>
+  <testcase name="x" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="rg" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="xy" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="rgb" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="xyz" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="zzz" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="aaaa" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.009"/>
+  <testcase name="abgr" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="rgba" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.003"/>
+  <testcase name="wzyz" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.008"/>
+  <testcase name="xyzw" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="notAFieldSelection1" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.0"/>
+  <testcase name="notAFieldSelection2" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <testcase name="mixedVals" classname="com.sun.scenario.effect.compiler.parser.FieldSelectTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

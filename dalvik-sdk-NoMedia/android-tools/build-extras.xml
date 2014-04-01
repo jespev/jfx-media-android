@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="build-extras" default="debug">
+
+        <property name="app.lib.absolute.dir" location="app-libs" />
+        
+	<target name="-pre-build" depends="-check-jfx.uptodate, -jfx.bootstrap, 
+                                           -check-app.uptodate, -app.bootstrap"/>
+
+	<target name="-check-jfx.uptodate">
+		<uptodate property="jfx.uptodate">
+			<srcfiles dir="${jfx.sdk.absolute.dir}/rt/libs" includes="*.jar"/>
+                        <mapper type="glob" from="*.jar" to="${jar.libs.absolute.dir}/*.jar"/>
+		</uptodate>
+	</target>
+
+	<target name="-jfx.bootstrap" unless="jfx.uptodate">
+		<copy todir="${jar.libs.absolute.dir}">
+			<fileset dir="${jfx.sdk.absolute.dir}/rt/libs"/>
+		</copy>
+                <copy todir="${asset.absolute.dir}">
+                    <fileset dir="${jfx.sdk.absolute.dir}/rt">
+                        <include name="*.properties"/>
+                    </fileset>
+                </copy>
+	</target>
+        
+        <target name="-check-app.uptodate" if="jfx.app.absolute.dist.dir">
+            <uptodate property="app.uptodate">
+                    <srcfiles dir="${jfx.app.absolute.dist.dir}" includes="*.jar"/>
+                    <mapper type="glob" from="*.jar" to="${app.lib.absolute.dir}/*.jar"/>
+            </uptodate>
+        </target>
+        
+        <target name="-app.bootstrap" unless="app.uptodate">
+            <mkdir dir="${app.lib.absolute.dir}"/> 
+            <copy todir="${app.lib.absolute.dir}" failonerror="false">
+                <fileset dir="${jfx.app.absolute.dist.dir}"/>
+            </copy>
+        </target>
+
+        <target name="-application.jar" if="jfx.app.absolute.dist.dir">
+            <jar destfile="${app.lib.absolute.dir}/Application.jar">
+                    <zipgroupfileset dir="${jfx.app.absolute.dist.dir}" includes="*.jar"/>
+            </jar>
+        </target>
+
+        <target name="-pre-dex" unless="app.uptodate" depends="-application.jar">
+            <jar update="true" destfile="${app.lib.absolute.dir}/Application.jar">
+                    <fileset dir="${out.classes.absolute.dir}" />
+                    <zipgroupfileset dir="${jar.libs.absolute.dir}" includes="*.jar" excludes="jfxdvk.jar"/>
+            </jar>        
+            <jar destfile="${app.lib.absolute.dir}/Application_resources.jar">
+                    <zipfileset src="${app.lib.absolute.dir}/Application.jar" excludes="**/*.class"/>
+            </jar>
+	    <copy todir="${asset.absolute.dir}" file="${app.lib.absolute.dir}/Application_resources.jar"/>	
+            <jar destfile="${app.lib.absolute.dir}/Application_classes.jar">
+                    <zipfileset src="${app.lib.absolute.dir}/Application.jar" includes="**/*.class"/>
+            </jar>          
+        </target>    
+        
+        <target name="-pre-clean">
+		<delete includeemptydirs="true" quiet="true">
+                    <fileset dir="${app.lib.absolute.dir}" />
+                    <fileset dir="${asset.absolute.dir}" includes="Application_dex.jar"/>
+                    <fileset dir="${asset.absolute.dir}" includes="Application_resources.jar"/>
+                </delete>
+	</target>
+	
+	<macrodef name="dex-helper-extra">
+            <element name="external-libs" optional="yes" />
+            <element name="extra-parameters" optional="yes" />
+                <attribute name="nolocals" default="false" />
+                <sequential>
+                        <property name="out.dex.input.absolute.dir" value="${out.classes.absolute.dir}" />
+                        <condition property="nolocals.option" value="--no-locals" else="" >
+                                <istrue value="@{nolocals}" />
+                        </condition>
+                        <condition property="verbose.option" value="--verbose" else="" >
+                                <istrue value="${verbose}" />
+                        </condition>
+                        <if>
+                        <condition>
+                                <isreference refid="out.dex.jar.input.ref" />
+                        </condition>
+                        <else>
+                                <path id="out.dex.jar.input.ref">
+                                    <path refid="project.all.jars.path" />
+                                </path>
+                        </else>
+                        </if>
+                <pathconvert refid="out.dex.jar.input.ref" property="out.dex.jar.input.value" pathsep=" "/>
+                <exec executable="${dx}" failonerror="true">
+                        <arg value="--dex" />
+                        <arg value="--output=${intermediate.dex.file}" />
+                        <extra-parameters />
+                        <arg line="${verbose.option}" />
+                        <arg line="${nolocals.option}" />
+                        <arg line="${jar.libs.absolute.dir}/jfxdvk.jar"/>
+                        <external-libs />
+                </exec>
+                <property name="output-dex-dir" value="${out.absolute.dir}/app_dex" />
+                <mkdir dir="${out.absolute.dir}/app_dex"/>
+                <exec executable="${dx}" failonerror="true">
+                        <arg value="-JXmx2g" />
+                        <arg value="--dex" />
+                        <arg value="--multi-dex" />
+                        <arg value="--output=${output-dex-dir}" />
+                        <extra-parameters />
+                        <arg line="${verbose.option}" />
+                        <arg line="${nolocals.option}" />
+                        <arg line="${app.lib.absolute.dir}/Application_classes.jar"/>
+                </exec>
+                <zip destfile="${asset.absolute.dir}/Application_dex.jar" basedir="${output-dex-dir}" /> 
+            </sequential>
+        </macrodef>
+	<target name="-dex" depends="-compile, -post-compile, -obfuscate, -pre-dex">
+		<do-only-if-manifest-hasCode elseText="hasCode = false. Skipping...">
+		<do-only-if-not-library elseText="Library project: do not convert bytecode..." >
+		<if condition="${build.is.instrumented}">
+		<then>
+			<dex-helper-extra nolocals="true">
+			<external-libs>
+				<fileset file="${emma.dir}/emma_device.jar" />
+			</external-libs>
+		</dex-helper-extra>
+		</then>
+		<else>
+			<dex-helper-extra>
+				<extra-parameters>
+					<arg value="--core-library" />
+				</extra-parameters>
+			</dex-helper-extra>
+			</else>
+			</if>
+		</do-only-if-not-library>
+		</do-only-if-manifest-hasCode>
+	</target>
+        
+        <macrodef name="package-helper-extra">
+        <element name="extra-jars" optional="yes" />
+        <sequential>            
+            <apkbuilder
+                    outfolder="${out.absolute.dir}"
+                    resourcefile="${resource.package.file.name}"
+                    apkfilepath="${out.packaged.file}"
+                    debugpackaging="${build.is.packaging.debug}"
+                    debugsigning="${build.is.signing.debug}"
+                    verbose="${verbose}"
+                    hascode="${manifest.hasCode}"
+                    previousBuildType="${build.last.is.packaging.debug}/${build.last.is.signing.debug}"
+                    buildType="${build.is.packaging.debug}/${build.is.signing.debug}">
+                <dex path="${intermediate.dex.file}"/>
+                <sourcefolder path="${source.absolute.dir}"/>
+                <nativefolder path="${native.libs.absolute.dir}" />
+                <nativefolder refid="project.library.native.folder.path" />
+                <nativefolder refid="project.rs.support.libs.path" />
+                <nativefolder path="${out.rs.libs.absolute.dir}" />
+                <extra-jars/>
+            </apkbuilder>
+        </sequential>
+    </macrodef>
+    
+    <target name="-package" depends="-dex, -package-resources">
+        <!-- only package apk if *not* a library project -->
+        <do-only-if-not-library elseText="Library project: do not package apk..." >
+            <if condition="${build.is.instrumented}">
+                <then>
+                    <package-helper-extra>
+                        <extra-jars>
+                            <!-- Injected from external file -->
+                            <jarfile path="${emma.dir}/emma_device.jar" />
+                        </extra-jars>
+                    </package-helper-extra>
+                </then>
+                <else>
+                    <package-helper-extra />
+                </else>
+            </if>
+        </do-only-if-not-library>
+    </target>        
+</project>
